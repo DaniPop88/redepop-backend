@@ -1,35 +1,65 @@
 const express = require("express");
-const app = express();
 const cors = require("cors");
+const { google } = require("googleapis");
 
+const app = express();
 app.use(cors());
 app.use(express.json());
 
-// TEST ROUTE
+const creds = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT);
+const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
+
+async function authorizeSheets() {
+  const auth = new google.auth.GoogleAuth({
+    credentials: creds,
+    scopes: ["https://www.googleapis.com/auth/spreadsheets.readonly"],
+  });
+  return await auth.getClient();
+}
+
 app.get("/", (req, res) => {
-  res.send("Backend aktif! 👍");
+  res.send("✅ Backend is running!");
 });
 
-// VALIDATION ENDPOINT
-app.get("/validate", (req, res) => {
+app.get("/validate", async (req, res) => {
   const { product_id, secret_code } = req.query;
 
   if (!product_id || !secret_code) {
-    return res.status(400).json({
-      status: "error",
-      message: "Missing product_id or secret_code",
-    });
+    return res.status(400).json({ status: "error", message: "Missing data" });
   }
 
-  // Simulasi validasi (nanti kamu ganti dengan validasi ke Google Sheet)
-  if (secret_code === "ABC123") {
-    res.json({ status: "success", message: "Code valid!" });
-  } else {
-    res.json({ status: "error", message: "Invalid code" });
+  try {
+    const authClient = await authorizeSheets();
+    const sheets = google.sheets({ version: "v4", auth: authClient });
+
+    const read = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: "Sheet1", // Ubah jika Sheet kamu bukan Sheet1
+    });
+
+    const rows = read.data.values;
+    if (!rows || rows.length === 0) {
+      return res.json({ status: "error", message: "Sheet kosong" });
+    }
+
+    const found = rows.find(
+      (row) =>
+        row[0] === product_id.trim() &&
+        row[1] === secret_code.trim()
+    );
+
+    if (found) {
+      return res.json({ status: "valid", message: "Code valid" });
+    } else {
+      return res.json({ status: "invalid", message: "Code tidak ditemukan" });
+    }
+  } catch (err) {
+    console.error("Error:", err);
+    return res.status(500).json({ status: "error", message: "Server error" });
   }
 });
 
-const PORT = process.env.PORT || 10000;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`✅ Server ready on port ${PORT}`);
 });
