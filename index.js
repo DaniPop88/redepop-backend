@@ -33,7 +33,7 @@ app.get("/validate", async (req, res) => {
     const sheets = google.sheets({ version: "v4", auth: authClient });
 
     const read = await sheets.spreadsheets.values.get({
-      spreadsheetId: 1V7sG1uu7GZw7T2UNjXs2h3wbc4Td2FM-iiwNnY8rD4A,
+      spreadsheetId: "1V7sG1uu7GZw7T2UNjXs2h3wbc4Td2FM-iiwNnY8rD4A",
       range: "secret_codes", // Ubah jika Sheet kamu bukan Sheet1
     });
 
