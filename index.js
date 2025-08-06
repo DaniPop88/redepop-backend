@@ -68,19 +68,22 @@ app.get("/validate", async (req, res) => {
 // 📝 Save order to ORDER sheet
 app.post("/order", async (req, res) => {
   const {
-    full_name,
+    productId,
+    productName,
+    productImg,
+    fullName,
     cpf,
-    phone_number,
-    full_address,
+    phone,
+    address,
     city,
     state,
-    zip_code,
-    product_id,
+    zip,
+    secretCode
   } = req.body;
 
   if (
-    !full_name || !cpf || !phone_number || !full_address ||
-    !city || !state || !zip_code || !product_id
+    !productId || !productName || !productImg || !fullName || !cpf ||
+    !phone || !address || !city || !state || !zip || !secretCode
   ) {
     return res.status(400).json({ status: "error", message: "Missing fields" });
   }
@@ -90,12 +93,25 @@ app.post("/order", async (req, res) => {
     const timestamp = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
 
     const values = [
-      [timestamp, full_name, cpf, phone_number, full_address, city, state, zip_code, product_id],
+      [
+        timestamp,    // A: Timestamp
+        productId,    // B: productId
+        productName,  // C: productName
+        productImg,   // D: productImg
+        fullName,     // E: fullName
+        cpf,          // F: cpf
+        phone,        // G: phone
+        address,      // H: address
+        city,         // I: city
+        state,        // J: state
+        zip,          // K: zip
+        secretCode    // L: secretCode
+      ]
     ];
 
     await sheets.spreadsheets.values.append({
       spreadsheetId: spreadsheetId2,
-      range: "ORDER!A2", // Ubah jika Sheet bukan "ORDER"
+      range: "ORDER!A2", // Pastikan Sheet namanya benar
       valueInputOption: "USER_ENTERED",
       resource: { values },
     });
