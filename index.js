@@ -47,7 +47,7 @@ app.get("/validate", async (req, res) => {
 
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: spreadsheetId1,
-      range: "secret_codes", // Ubah sesuai nama sheet-mu
+      range: "secret_codes",
     });
 
     const rows = response.data.values;
@@ -55,12 +55,20 @@ app.get("/validate", async (req, res) => {
       return res.json({ status: "error", message: "Sheet kosong" });
     }
 
+    // Cek status kode, hanya "UNUSED" yang valid
     const found = rows.find(
-      (row) => row[0] === product_id.trim() && row[1] === secret_code.trim()
+      (row) =>
+        row[0] === product_id.trim() &&
+        row[1] === secret_code.trim()
     );
 
     if (found) {
-      return res.json({ status: "valid", message: "Code valid" });
+      const status = (found[2] || "").toUpperCase();
+      if (status === "USED") {
+        return res.json({ status: "used", message: "Code already used" });
+      } else {
+        return res.json({ status: "valid", message: "Code valid" });
+      }
     } else {
       return res.json({ status: "invalid", message: "Code tidak ditemukan" });
     }
@@ -96,7 +104,39 @@ app.post("/order", async (req, res) => {
   const brazilTime = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
   let sheets2, sheets1;
   try {
-    // 1. Save to ORDER sheet
+    // 1. Update secret_codes status to USED and set Date Used in secret_codes sheet (sheet1)
+    sheets1 = await getSheetsClient(creds1);
+    const secretCodesSheet = "secret_codes";
+    // Read all rows
+    const resp = await sheets1.spreadsheets.values.get({
+      spreadsheetId: spreadsheetId1,
+      range: secretCodesSheet,
+    });
+    const rows = resp.data.values;
+    // Find row index (skip header)
+    const rowIdx = rows.findIndex(
+      (row, idx) =>
+        idx > 0 &&
+        row[0] && row[1] &&
+        row[0].trim() === productId.trim() &&
+        row[1].trim() === secretCode.trim()
+    );
+    if (rowIdx === -1) {
+      return res.status(400).json({ status: "error", message: "Secret code not found in secret_codes sheet" });
+    }
+    // Cek status, hanya boleh digunakan jika UNUSED
+    if (rows[rowIdx][2] && rows[rowIdx][2].toUpperCase() === "USED") {
+      return res.status(400).json({ status: "error", message: "Secret code already used" });
+    }
+    // Col C (Status), Col D (Date Used) = cols 3,4 (index 2,3)
+    await sheets1.spreadsheets.values.update({
+      spreadsheetId: spreadsheetId1,
+      range: `${secretCodesSheet}!C${rowIdx+1}:D${rowIdx+1}`,
+      valueInputOption: "USER_ENTERED",
+      resource: { values: [["USED", brazilTime]] }
+    });
+
+    // 2. Save to ORDER sheet
     sheets2 = await getSheetsClient(creds2);
 
     const values = [
@@ -118,41 +158,12 @@ app.post("/order", async (req, res) => {
 
     await sheets2.spreadsheets.values.append({
       spreadsheetId: spreadsheetId2,
-      range: "ORDER!A2", // Pastikan Sheet namanya benar
+      range: "ORDER!A2",
       valueInputOption: "USER_ENTERED",
       resource: { values },
     });
 
-    // 2. Update secret_codes status to USED and set Date Used in secret_codes sheet (sheet1)
-    sheets1 = await getSheetsClient(creds1);
-    const secretCodesSheet = "secret_codes";
-    // Read all rows
-    const resp = await sheets1.spreadsheets.values.get({
-      spreadsheetId: spreadsheetId1,
-      range: secretCodesSheet,
-    });
-    const rows = resp.data.values;
-    // Find row index (skip header)
-    const rowIdx = rows.findIndex(
-      (row, idx) =>
-        idx > 0 &&
-        row[0] && row[1] &&
-        row[0].trim() === productId.trim() &&
-        row[1].trim() === secretCode.trim()
-    );
-    if (rowIdx === -1) {
-      return res.status(400).json({ status: "error", message: "Secret code not found in secret_codes sheet" });
-    }
-    // Col C (Status), Col D (Date Used) = cols 3,4 (index 2,3)
-    await sheets1.spreadsheets.values.update({
-      spreadsheetId: spreadsheetId1,
-      range: `${secretCodesSheet}!C${rowIdx+1}:D${rowIdx+1}`,
-      valueInputOption: "USER_ENTERED",
-      resource: { values: [["USED", brazilTime]] }
-    });
-
     // 3. Send Telegram notification
-    // Format message
     let msg = `🎁 NOVA SOLICITAÇÃO DE RESGATE 🎁\n\n`;
     msg += `👤 Nome: ${fullName}\n`;
     msg += `📇 CPF: ${cpf}\n`;
