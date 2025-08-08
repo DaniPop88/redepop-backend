@@ -7,19 +7,19 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// 👉 AUTH 1: For validating secret codes
+// ===================================================================== AUTH 1: For validating secret codes
 const creds1 = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_1);
 const spreadsheetId1 = process.env.SPREADSHEET_ID_1;
 
-// 👉 AUTH 2: For saving order
+// ===================================================================== AUTH 2: For saving order
 const creds2 = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_2);
 const spreadsheetId2 = process.env.SPREADSHEET_ID_2;
 
-// Telegram config
+// ===================================================================== Telegram config
 const TELEGRAM_BOT_TOKEN = "8443170386:AAHY0sjxFmRE5BbJp1FT1JtSwblwacW21II";
 const TELEGRAM_CHAT_ID = "-1002411001864";
 
-// 🧠 Create reusable sheet client
+// ===================================================================== Create reusable sheet client
 async function getSheetsClient(creds) {
   const auth = new google.auth.GoogleAuth({
     credentials: creds,
@@ -29,12 +29,12 @@ async function getSheetsClient(creds) {
   return google.sheets({ version: "v4", auth: authClient });
 }
 
-// ✅ TEST endpoint
+// ===================================================================== TEST endpoint
 app.get("/", (req, res) => {
   res.send("✅ BACKEND IS RUNNING!!");
 });
 
-// 🔍 Validate product_id + secret_code
+// ===================================================================== Validate product_id + secret_code
 app.get("/validate", async (req, res) => {
   const { product_id, secret_code } = req.query;
 
@@ -55,7 +55,7 @@ app.get("/validate", async (req, res) => {
       return res.json({ status: "error", message: "Sheet kosong" });
     }
 
-    // Cek status kode, hanya "UNUSED" yang valid
+    // ===================================================================== Cek status kode, hanya "UNUSED" yang valid
     const found = rows.find(
       (row) =>
         row[0] === product_id.trim() &&
@@ -78,7 +78,7 @@ app.get("/validate", async (req, res) => {
   }
 });
 
-// 📝 Save order to ORDER sheet, update code status in secret_codes, send Telegram
+// ===================================================================== Save order to ORDER sheet, update code status in secret_codes, send Telegram
 app.post("/order", async (req, res) => {
   const {
     productId,
@@ -87,6 +87,7 @@ app.post("/order", async (req, res) => {
     fullName,
     cpf,
     phone,
+    gameId,
     address,
     city,
     state,
@@ -96,7 +97,7 @@ app.post("/order", async (req, res) => {
 
   if (
     !productId || !productName || !productImg || !fullName || !cpf ||
-    !phone || !address || !city || !state || !zip || !secretCode
+    !phone || !gameId || !address || !city || !state || !zip || !secretCode
   ) {
     return res.status(400).json({ status: "error", message: "Missing fields" });
   }
@@ -104,16 +105,16 @@ app.post("/order", async (req, res) => {
   const brazilTime = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
   let sheets2, sheets1;
   try {
-    // 1. Update secret_codes status to USED and set Date Used in secret_codes sheet (sheet1)
+    // ===================================================================== Update secret_codes status to USED and set Date Used in secret_codes sheet (sheet1)
     sheets1 = await getSheetsClient(creds1);
     const secretCodesSheet = "secret_codes";
-    // Read all rows
+    // ===================================================================== Read all rows
     const resp = await sheets1.spreadsheets.values.get({
       spreadsheetId: spreadsheetId1,
       range: secretCodesSheet,
     });
     const rows = resp.data.values;
-    // Find row index (skip header)
+    // ===================================================================== Find row index (skip header)
     const rowIdx = rows.findIndex(
       (row, idx) =>
         idx > 0 &&
@@ -124,11 +125,11 @@ app.post("/order", async (req, res) => {
     if (rowIdx === -1) {
       return res.status(400).json({ status: "error", message: "Secret code not found in secret_codes sheet" });
     }
-    // Cek status, hanya boleh digunakan jika UNUSED
+    // ===================================================================== Cek status, hanya boleh digunakan jika UNUSED
     if (rows[rowIdx][2] && rows[rowIdx][2].toUpperCase() === "USED") {
       return res.status(400).json({ status: "error", message: "Secret code already used" });
     }
-    // Col C (Status), Col D (Date Used) = cols 3,4 (index 2,3)
+    // ===================================================================== Col C (Status), Col D (Date Used) = cols 3,4 (index 2,3)
     await sheets1.spreadsheets.values.update({
       spreadsheetId: spreadsheetId1,
       range: `${secretCodesSheet}!C${rowIdx+1}:D${rowIdx+1}`,
@@ -136,23 +137,24 @@ app.post("/order", async (req, res) => {
       resource: { values: [["USED", brazilTime]] }
     });
 
-    // 2. Save to ORDER sheet
+    // ===================================================================== 2. Save to ORDER sheet
     sheets2 = await getSheetsClient(creds2);
 
     const values = [
       [
-        brazilTime,    // A: Timestamp
+        brazilTime,   // A: Timestamp
         productId,    // B: productId
         productName,  // C: productName
         productImg,   // D: productImg
         fullName,     // E: fullName
         cpf,          // F: cpf
         phone,        // G: phone
-        address,      // H: address
-        city,         // I: city
-        state,        // J: state
-        zip,          // K: zip
-        secretCode    // L: secretCode
+        gameId,       // H: gameId
+        address,      // I: address
+        city,         // J: city
+        state,        // K: state
+        zip,          // L: zip
+        secretCode    // M: secretCode
       ]
     ];
 
@@ -163,20 +165,21 @@ app.post("/order", async (req, res) => {
       resource: { values },
     });
 
-    // 3. Send Telegram notification
-    let msg = `🎁 NOVA SOLICITAÇÃO DE RESGATE 🎁\n\n`;
-    msg += `👤 Nome: ${fullName}\n`;
-    msg += `📇 CPF: ${cpf}\n`;
-    msg += `📞 Telefone: ${phone}\n`;
-    msg += `🏠 Endereço: ${address}\n`;
-    msg += `🏙️ Cidade: ${city}\n`;
-    msg += `📍 Estado: ${state}\n`;
-    msg += `📬 CEP: ${zip}\n\n`;
+    // ===================================================================== 3. Send Telegram notification
+    let msg = `🎁 NEW ORDER 🎁\n\n`;
+    msg += `NAME: ${fullName}\n`;
+    msg += `CPF: ${cpf}\n`;
+    msg += `PHONE: ${phone}\n`;
+    msg += `GAME ID: ${gameId}\n`;
+    msg += `ADDRESS: ${address}\n`;
+    msg += `CITY: ${city}\n`;
+    msg += `STATE: ${state}\n`;
+    msg += `POSTAL CODE: ${zip}\n\n`;
     msg += `PRODUCT NAME : ${productName}\n`;
     msg += `PICTURE : ${productImg}\n`;
     msg += `🎁 ${productId}\n`;
-    msg += `🔒 Código Secreto: ${secretCode}\n`;
-    msg += `📅 Data: ${brazilTime}\n`;
+    msg += `🔒 Secret Code: ${secretCode}\n`;
+    msg += `DATE: ${brazilTime}\n`;
 
     const telegramUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
     const telegramRes = await fetch(telegramUrl, {
@@ -193,7 +196,7 @@ app.post("/order", async (req, res) => {
       throw new Error("Failed to send Telegram: " + JSON.stringify(telegramData));
     }
 
-    // 4. Done: success response
+    // ===================================================================== 4. Done: success response
     return res.json({ status: "success", message: "Order saved, code updated, Telegram sent" });
 
   } catch (err) {
