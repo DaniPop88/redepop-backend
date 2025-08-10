@@ -89,6 +89,9 @@ app.post("/order", async (req, res) => {
     phone,
     gameId,
     address,
+    neighborhood,
+    street,
+    number,
     city,
     state,
     zip,
@@ -97,7 +100,7 @@ app.post("/order", async (req, res) => {
 
   if (
     !productId || !productName || !productImg || !fullName || !cpf ||
-    !phone || !gameId || !address || !city || !state || !zip || !secretCode
+    !phone || !gameId || !address || !neighborhood || !street || !number || !city || !state || !zip || !secretCode
   ) {
     return res.status(400).json({ status: "error", message: "Missing fields" });
   }
@@ -151,10 +154,13 @@ app.post("/order", async (req, res) => {
         phone,        // G: phone
         gameId,       // H: gameId
         address,      // I: address
-        city,         // J: city
-        state,        // K: state
-        zip,          // L: zip
-        secretCode    // M: secretCode
+        neighborhood, // J: address
+        street,       // K: address
+        number,       // L: address
+        city,         // M: city
+        state,        // N: state
+        zip,          // O: zip
+        secretCode    // P: secretCode
       ]
     ];
 
@@ -172,9 +178,12 @@ app.post("/order", async (req, res) => {
     msg += `NAME: <b>${fullName}</b>\n`;
     msg += `PHONE: ${phone}\n`;
     msg += `ADDRESS: ${address}\n`;
-    msg += `CITY: ${city}\n`;
+    msg += `BAIRRO: ${neighborhood}`;
+    msg += ` | ${street} `;
+    msg += `NO: ${number}\n`;
     msg += `STATE: ${state}\n`;
-    msg += `POSTAL CODE: ${zip}\n\n`;
+    msg += `CITY: ${city}\n`;
+    msg += `ZIP: ${zip}\n\n`;
     msg += `PRODUCT NAME\n${productName} `;
     msg += `[ ${productImg} ]\n\n`;
     msg += `REQUIREMENT: ${productId}\n`;
