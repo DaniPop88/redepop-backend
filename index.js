@@ -166,10 +166,10 @@ app.post("/order", async (req, res) => {
     });
 
     // ===================================================================== 3. Send Telegram notification
-    let msg = `**NEW ORDER FROM THE WEBSITE**\n\n`;
+    let msg = `<b>NEW ORDER FROM THE WEBSITE</b>\n\n`;
     msg += `GAME ID: ${gameId}\n`;
     msg += `CPF: ${cpf}\n\n`;
-    msg += `NAME: **${fullName}**\n`;
+    msg += `NAME: <b>${fullName}</b>\n`;
     msg += `PHONE: ${phone}\n`;
     msg += `ADDRESS: ${address}\n`;
     msg += `CITY: ${city}\n`;
@@ -178,8 +178,8 @@ app.post("/order", async (req, res) => {
     msg += `PRODUCT NAME\n${productName} `;
     msg += `[ ${productImg} ]\n\n`;
     msg += `REQUIREMENT: ${productId}\n`;
-    msg += `🔒 **SECRET CODE**: ${secretCode}\n\n`;
-    msg += `**DATE ORDERED**: ${brazilTime}\n`;
+    msg += `🔒 <b>SECRET CODE</b>: ${secretCode}\n\n`;
+    msg += `<b>DATE ORDERED</b>: ${brazilTime}\n`;
 
     const telegramUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
     const telegramRes = await fetch(telegramUrl, {
