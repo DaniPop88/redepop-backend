@@ -87,6 +87,7 @@ app.post("/order", async (req, res) => {
     fullName,
     cpf,
     phone,
+    platform,     // <-- ADDED
     gameId,
     address,
     neighborhood,
@@ -100,7 +101,7 @@ app.post("/order", async (req, res) => {
 
   if (
     !productId || !productName || !productImg || !fullName || !cpf ||
-    !phone || !gameId || !address || !neighborhood || !street || !number || !city || !state || !zip || !secretCode
+    !phone || !platform || !gameId || !address || !neighborhood || !street || !number || !city || !state || !zip || !secretCode
   ) {
     return res.status(400).json({ status: "error", message: "Missing fields" });
   }
@@ -152,15 +153,16 @@ app.post("/order", async (req, res) => {
         fullName,     // E: fullName
         cpf,          // F: cpf
         phone,        // G: phone
-        gameId,       // H: gameId
-        address,      // I: address
-        neighborhood, // J: address
-        street,       // K: address
-        number,       // L: address
-        city,         // M: city
-        state,        // N: state
-        zip,          // O: zip
-        secretCode    // P: secretCode
+        platform,     // H: platform (ADDED)
+        gameId,       // I: gameId (shifted)
+        address,      // J: address (shifted)
+        neighborhood, // K: neighborhood (shifted)
+        street,       // L: street (shifted)
+        number,       // M: number (shifted)
+        city,         // N: city (shifted)
+        state,        // O: state (shifted)
+        zip,          // P: zip (shifted)
+        secretCode    // Q: secretCode (shifted)
       ]
     ];
 
@@ -173,6 +175,7 @@ app.post("/order", async (req, res) => {
 
     // ===================================================================== 3. Send Telegram notification
     let msg = `<b>NEW ORDER FROM THE WEBSITE</b>\n\n`;
+    msg += `PLATFORM: <b>${platform}</b>\n`;  // <-- ADDED
     msg += `GAME ID: ${gameId}\n`;
     msg += `CPF: ${cpf}\n\n`;
     msg += `NOME COMPLETO: <b>${fullName}</b>\n`;
